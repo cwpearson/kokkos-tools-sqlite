@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <unordered_map>
+#include <vector>
 #include <chrono>
 #include <string>
 
@@ -34,7 +35,9 @@ struct Span {
 
 
 static std::unordered_map<uint64_t, Span> spans;
+static std::vector<Span> regions;
 static const char * KIND_PARFOR = "PARALLEL_FOR";
+static const char * KIND_REGION = "REGION";
 
 
 
@@ -95,14 +98,7 @@ uint64_t begin_parallel_for(const char* name, const uint32_t devID) {
     return kID;
 }
 
-// accepts the return value of the corresponding begin_parallel_for
-void end_parallel_for(const uint64_t kID) {
-
-    const TimePoint stop = Clock::now();
-    const Span &span = spans[kID];
-
-
-
+static void record_span(const Span &span, const TimePoint &stop) {
     sqlite3_bind_text(spanStmt, 1, span.kind.c_str(), -1, SQLITE_STATIC);
     sqlite3_bind_text(spanStmt, 2, span.kind.c_str(), -1, SQLITE_STATIC);
     sqlite3_bind_double(spanStmt, 3, span.start.time_since_epoch().count());
@@ -114,10 +110,24 @@ void end_parallel_for(const uint64_t kID) {
         std::cout << "Record inserted successfully" << std::endl;
     }
     sqlite3_reset(spanStmt);
+}
 
-    
-
+// accepts the return value of the corresponding begin_parallel_for
+void end_parallel_for(const uint64_t kID) {
+    record_span(spans[kID], Clock::now());
     spans.erase(kID);
+}
+
+
+void push_profile_region(const char *name) {
+    spanID++;
+    regions.emplace_back(name, KIND_REGION, Clock::now());
+}
+void pop_profile_region() {
+    if (!regions.empty()) {
+        record_span(regions.back(), Clock::now());
+        regions.pop_back();
+    }
 }
 
 }
