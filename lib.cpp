@@ -5,6 +5,7 @@
 #include <vector>
 #include <chrono>
 #include <string>
+#include <sstream>
 
 #include <sqlite3.h>
 
@@ -22,6 +23,7 @@ static uint64_t spanID = 0;
 
 static sqlite3* db = nullptr;
 static sqlite3_stmt* spanStmt = nullptr;
+static sqlite3_stmt* eventStmt = nullptr;
 
 
 struct Span {
@@ -33,11 +35,20 @@ struct Span {
     Span(const std::string &_name, const std::string &_kind, const TimePoint &_start) : name(_name), kind(_kind), start(_start) {}
 };
 
+struct Event {
+    std::string name;
+    std::string kind;
+
+    Event() = delete;
+    Event(const std::string &_name, const std::string &_kind) : name(_name), kind(_kind) {}
+};
+
 
 static std::unordered_map<uint64_t, Span> spans;
 static std::vector<Span> regions;
 static const char * KIND_PARFOR = "PARALLEL_FOR";
 static const char * KIND_REGION = "REGION";
+static const char * KIND_DEEPCOPY = "DEEPCOPY";
 
 
 
@@ -52,6 +63,7 @@ void init() {
         }
     }
 
+    // create Spans table
     {
         const char* createTableSQL = "CREATE TABLE IF NOT EXISTS Spans("
                                     "ID INTEGER PRIMARY KEY AUTOINCREMENT,"
@@ -70,9 +82,27 @@ void init() {
         }
     }
 
-
+    // create Events table
     {
-        const char* insertSQL = "INSERT INTO Users (Name, Kind, Start, Stop) VALUES (?, ?, ?, ?)";
+        const char* createTableSQL = "CREATE TABLE IF NOT EXISTS Events("
+                                    "ID INTEGER PRIMARY KEY AUTOINCREMENT,"
+                                    "Name TEXT NOT NULL,"
+                                    "Kind TEXT NOT NULL,"
+                                    "When REAL NOT NULL);";
+
+        char* errMsg = 0;
+        int rc = sqlite3_exec(db, createTableSQL, 0, 0, &errMsg);
+        if (rc != SQLITE_OK) {
+            std::cerr << "SQL error: " << errMsg << std::endl;
+            sqlite3_free(errMsg);
+        } else {
+            std::cout << "Table created successfully" << std::endl;
+        }
+    }
+
+    // prepare Span insertion statement
+    {
+        const char* insertSQL = "INSERT INTO Spans (Name, Kind, Start, Stop) VALUES (?, ?, ?, ?)";
         int rc = sqlite3_prepare_v2(db, insertSQL, -1, &spanStmt, 0);
         if (rc != SQLITE_OK) {
             std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db) << std::endl;
@@ -81,12 +111,23 @@ void init() {
         }
     }
 
+    // prepare Event insertion statement
+    {
+        const char* insertSQL = "INSERT INTO Events (Name, Kind, When) VALUES (?, ?, ?)";
+        int rc = sqlite3_prepare_v2(db, insertSQL, -1, &eventStmt, 0);
+        if (rc != SQLITE_OK) {
+            std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_close(db);
+            exit(1);
+        }
+    }
 
 }
 
 void finalize() {
     std::cerr << __FILE__ << ":" << __LINE__ << " finalize\n";
-    sqlite3_finalize(spanStmt); // could move this to finalize
+    sqlite3_finalize(spanStmt);
+    sqlite3_finalize(eventStmt);
     sqlite3_close(db);
     db = nullptr;
 }
@@ -99,7 +140,7 @@ uint64_t begin_parallel_for(const char* name, const uint32_t devID) {
 }
 
 static void record_span(const Span &span, const TimePoint &stop) {
-    sqlite3_bind_text(spanStmt, 1, span.kind.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_text(spanStmt, 1, span.name.c_str(), -1, SQLITE_STATIC);
     sqlite3_bind_text(spanStmt, 2, span.kind.c_str(), -1, SQLITE_STATIC);
     sqlite3_bind_double(spanStmt, 3, span.start.time_since_epoch().count());
     sqlite3_bind_double(spanStmt, 4, stop.time_since_epoch().count());
@@ -110,6 +151,19 @@ static void record_span(const Span &span, const TimePoint &stop) {
         std::cout << "Record inserted successfully" << std::endl;
     }
     sqlite3_reset(spanStmt);
+}
+
+static void record_event(const Event &event, const TimePoint &when) {
+    sqlite3_bind_text(eventStmt, 1, event.name.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_text(eventStmt, 2, event.kind.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_double(eventStmt, 3, when.time_since_epoch().count());
+    int rc = sqlite3_step(eventStmt);
+    if (rc != SQLITE_DONE) {
+        std::cerr << "Execution failed: " << sqlite3_errmsg(db) << std::endl;
+    } else {
+        std::cout << "Record inserted successfully" << std::endl;
+    }
+    sqlite3_reset(eventStmt);
 }
 
 // accepts the return value of the corresponding begin_parallel_for
@@ -128,6 +182,18 @@ void pop_profile_region() {
         record_span(regions.back(), Clock::now());
         regions.pop_back();
     }
+}
+
+void begin_deep_copy(const char *dstSpaceName, const char *dst_name, const void *dst_ptr, const char *srcSpaceName, const char *src_name, const void *src_ptr, uint64_t size) {
+
+    (void) dst_name;
+    (void) dst_ptr;
+    (void) src_name;
+    (void) src_ptr;
+
+    std::stringstream ss;
+    ss << dstSpaceName << " -> " << srcSpaceName << "(" << size << ")";
+    record_event(Event(ss.str(), KIND_DEEPCOPY), Clock::now());
 }
 
 }

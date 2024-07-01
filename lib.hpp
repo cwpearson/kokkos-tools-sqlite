@@ -20,8 +20,6 @@ void end_parallel_for(const uint64_t kID);
 void push_profile_region(const char *name);
 void pop_profile_region();
 
-void begin_deep_copy(const char *dstSpaceName, const char *dst_name, const void *dst_ptr, const char *srcSpaceName, const char *src_name, const void *src_ptr, uint64_t size) {
-
-}
+void begin_deep_copy(const char *dstSpaceName, const char *dst_name, const void *dst_ptr, const char *srcSpaceName, const char *src_name, const void *src_ptr, uint64_t size);
 
 } // namespace lib
