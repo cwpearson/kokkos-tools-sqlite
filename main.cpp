@@ -21,7 +21,7 @@
 #include <limits>
 #include <cstring>
 
-#include "lib.hpp"
+#include "kts.hpp"
 
 struct SpaceHandle {
   char name[64];
