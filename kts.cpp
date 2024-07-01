@@ -50,7 +50,6 @@ class Worker {
 public:
 
     Worker() : done_(false) {
-        std::cerr << __FILE__ << ":" << __LINE__ << " starting worker...\n";
         thread_ = std::thread(&Worker::process_queue, this);
     }
 
@@ -105,9 +104,7 @@ static const char * KIND_DEEPCOPY = "DEEPCOPY";
 static std::unique_ptr<Worker> worker;
 
 void init() {
-    std::cerr << __FILE__ << ":" << __LINE__ << " init\n";
-    worker = std::make_unique<Worker>();
-
+    std::cerr << "==== libkts.so: init ====\n";
     const char* sqlitePath = std::getenv("KTS_SQLITE_PATH");
     if (!sqlitePath) {
         sqlitePath = "kts.sqlite";
@@ -136,8 +133,6 @@ void init() {
         if (rc != SQLITE_OK) {
             std::cerr << "SQL error: " << errMsg << std::endl;
             sqlite3_free(errMsg);
-        } else {
-            std::cout << "Table created successfully" << std::endl;
         }
     }
 
@@ -154,8 +149,6 @@ void init() {
         if (rc != SQLITE_OK) {
             std::cerr << "SQL error: " << errMsg << std::endl;
             sqlite3_free(errMsg);
-        } else {
-            std::cout << "Table created successfully" << std::endl;
         }
     }
 
@@ -193,9 +186,13 @@ void init() {
         }
     }
 
+    // initialize worker thread
+    worker = std::make_unique<Worker>();
 }
 
 void finalize() {
+    std::cerr << "==== libkts.so: finalize ====\n";
+
     // drain worker
     worker = nullptr;
 
