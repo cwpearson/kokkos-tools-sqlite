@@ -52,6 +52,28 @@ static const char * KIND_PARFOR = "PARALLEL_FOR";
 static const char * KIND_REGION = "REGION";
 static const char * KIND_DEEPCOPY = "DEEPCOPY";
 
+static void begin_transaction() {
+    char* errMsg = 0;
+    int rc = sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, &errMsg);
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "SQL error: %s\n", errMsg);
+        sqlite3_free(errMsg);
+        sqlite3_close(db);
+        exit(1);
+    }
+}
+
+static void commit_transaction() {
+    char* errMsg = 0;
+    int rc = sqlite3_exec(db, "COMMIT", 0, 0, &errMsg);
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "commit_transaction: SQL error: %s\n", errMsg);
+        sqlite3_free(errMsg);
+        sqlite3_close(db);
+        exit(1);
+    }
+}
+
 void init() {
     std::cerr << "==== libkts.so: init ====\n";
     const char* sqlitePath = std::getenv("KTS_SQLITE_PATH");
@@ -67,6 +89,8 @@ void init() {
             exit(1);
         }
     }
+
+    begin_transaction();
 
     // create Spans table
     {
@@ -101,6 +125,8 @@ void init() {
         }
     }
 
+    commit_transaction();
+
     // prepare Span insertion statement
     {
         const char* insertSQL = "INSERT INTO Spans (Name, Kind, Start, Stop) VALUES (?, ?, ?, ?);";
@@ -123,34 +149,13 @@ void init() {
         }
     }
 
-    // begin transaction
-    {
-        char* errMsg = 0;
-        int rc = sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, &errMsg);
-        if (rc != SQLITE_OK) {
-            fprintf(stderr, "SQL error: %s\n", errMsg);
-            sqlite3_free(errMsg);
-            sqlite3_close(db);
-            exit(1);
-        }
-    }
+    begin_transaction();
 }
 
 void finalize() {
     std::cerr << "==== libkts.so: finalize ====\n";
 
-    // commit transaction
-    {
-        char* errMsg = 0;
-        int rc = sqlite3_exec(db, "COMMIT", 0, 0, &errMsg);
-        if (rc != SQLITE_OK) {
-            fprintf(stderr, "SQL error: %s\n", errMsg);
-            sqlite3_free(errMsg);
-            sqlite3_close(db);
-            exit(1);
-        }
-    }
-
+    commit_transaction();
     sqlite3_finalize(spanStmt);
     sqlite3_finalize(eventStmt);
     sqlite3_close(db);
