@@ -1,6 +1,6 @@
-# Kokkos Tools Sqlite
+# Kokkos Tools Sqlite (KTS)
 
-Capture Kokkos profiling information in sqlite library
+Capture Kokkos profiling information in an sqlite library
 
 ## Getting Started
 
@@ -8,7 +8,14 @@ Capture Kokkos profiling information in sqlite library
 mkdir build
 cmake -S build
 
-export KOKKOS_TOOLS_LIBS=$(realpath build/lib
+export KOKKOS_TOOLS_LIBS=$(realpath build/libkts.so)
+
+./your/kokkos/program
+```
+
+Optionally, you can control the path to the generated sqlite file. The provided prefix will be appended with the MPI rank (or `0` in the case of no MPI).
+```bash
+export KTS_SQLITE_PREFIX=path/to/output/prefix
 ```
 
 ## Examples

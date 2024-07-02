@@ -17,6 +17,7 @@
 #include <dlfcn.h>
 
 #include "kts.hpp"
+#include "kts_mpi.hpp"
 
 using Clock = std::chrono::steady_clock;
 using Duration = std::chrono::duration<double>;
@@ -77,27 +78,15 @@ static void commit_transaction() {
     }
 }
 
-
-static int get_rank() {
-    const char * commWorldRankStr = std::getenv("OMPI_COMM_WORLD_RANK");
-    if (!commWorldRankStr) {
-        return 0;
-    } else {
-        return std::atoi(commWorldRankStr);
-    }
-}
-
-
-
 void init() {
     std::cerr << "==== libkts.so: init ====\n";
-    std::cerr << __FILE__ << ":" << __LINE__ << " " << get_rank() << "\n";
+    std::cerr << __FILE__ << ":" << __LINE__ << " " << kts_mpi_rank() << "\n";
     const char* sqlitePrefix = std::getenv("KTS_SQLITE_PREFIX");
     if (!sqlitePrefix) {
         sqlitePrefix = "kts_";
     }
 
-    std::string sqlitePath = std::string(sqlitePrefix) + std::to_string(get_rank()) + ".sqlite";
+    std::string sqlitePath = std::string(sqlitePrefix) + std::to_string(kts_mpi_rank()) + ".sqlite";
 
     {
         std::cerr << __FILE__ << ":" << __LINE__ << " open " << sqlitePath << "\n";
