@@ -13,12 +13,12 @@ export KOKKOS_TOOLS_LIBS=$(realpath build/lib
 
 ## Examples
 
+**Find all `DEEPCOPY` events that happen in a region with a name that includes `SPGEMM`**
+
 ```sql
-SELECT * FROM Events
-WHERE EXISTS (
-    SELECT 1
-    FROM Spans
-    WHERE Event.Time >= Spans.Start
-    AND Event.Time <= Spans.Stop
-);
+SELECT Events.*
+FROM Events
+JOIN Spans ON Events.Time BETWEEN Spans.Start AND Spans.Stop
+WHERE Events.Kind = 'DEEPCOPY'
+  AND Spans.Name LIKE '%SPGEMM%';
 ```

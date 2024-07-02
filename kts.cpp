@@ -14,6 +14,8 @@
 
 #include <sqlite3.h>
 
+#include <dlfcn.h>
+
 #include "kts.hpp"
 
 using Clock = std::chrono::steady_clock;
@@ -52,11 +54,12 @@ static const char * KIND_PARFOR = "PARALLEL_FOR";
 static const char * KIND_REGION = "REGION";
 static const char * KIND_DEEPCOPY = "DEEPCOPY";
 
+
 static void begin_transaction() {
     char* errMsg = 0;
-    int rc = sqlite3_exec(db, "BEGIN TRANSACTION", 0, 0, &errMsg);
+    int rc = sqlite3_exec(db, "BEGIN IMMEDIATE", 0, 0, &errMsg);
     if (rc != SQLITE_OK) {
-        fprintf(stderr, "SQL error: %s\n", errMsg);
+        fprintf(stderr, "begin_transaction: SQL error: %s\n", errMsg);
         sqlite3_free(errMsg);
         sqlite3_close(db);
         exit(1);
@@ -74,16 +77,31 @@ static void commit_transaction() {
     }
 }
 
+
+static int get_rank() {
+    const char * commWorldRankStr = std::getenv("OMPI_COMM_WORLD_RANK");
+    if (!commWorldRankStr) {
+        return 0;
+    } else {
+        return std::atoi(commWorldRankStr);
+    }
+}
+
+
+
 void init() {
     std::cerr << "==== libkts.so: init ====\n";
-    const char* sqlitePath = std::getenv("KTS_SQLITE_PATH");
-    if (!sqlitePath) {
-        sqlitePath = "kts.sqlite";
+    std::cerr << __FILE__ << ":" << __LINE__ << " " << get_rank() << "\n";
+    const char* sqlitePrefix = std::getenv("KTS_SQLITE_PREFIX");
+    if (!sqlitePrefix) {
+        sqlitePrefix = "kts_";
     }
 
+    std::string sqlitePath = std::string(sqlitePrefix) + std::to_string(get_rank()) + ".sqlite";
 
     {
-        int rc = sqlite3_open(sqlitePath, &db);
+        std::cerr << __FILE__ << ":" << __LINE__ << " open " << sqlitePath << "\n";
+        int rc = sqlite3_open(sqlitePath.c_str(), &db);
         if (rc) {
             std::cerr << "Can't open database: " << sqlite3_errmsg(db) << std::endl;
             exit(1);
@@ -165,33 +183,57 @@ void finalize() {
 // returns a unique id
 uint64_t begin_parallel_for(const char* name, const uint32_t devID) {
     uint64_t kID = spanID++;
-    spans[kID] = Span(name, std::string(KIND_PARFOR) + " " + std::to_string(devID), Clock::now());
+    spans[kID] = Span(name, std::string(KIND_PARFOR) + "[" + std::to_string(devID) + "]", Clock::now());
     return kID;
 }
 
 static void record_span(const Span &span, TimePoint &&stop) {
-        sqlite3_bind_text(spanStmt, 1, span.name.c_str(), -1, SQLITE_STATIC);
-        sqlite3_bind_text(spanStmt, 2, span.kind.c_str(), -1, SQLITE_STATIC);
-        sqlite3_bind_double(spanStmt, 3, span.start.time_since_epoch().count());
-        sqlite3_bind_double(spanStmt, 4, stop.time_since_epoch().count());
-        int rc = sqlite3_step(spanStmt);
-        if (rc != SQLITE_DONE) {
-            std::cerr << "Execution failed: " << sqlite3_errmsg(db) << std::endl;
-            exit(1);
-        }
-        sqlite3_reset(spanStmt);
+    const char *name = span.name.c_str();
+    if (!name) {
+        name = "<null name>";
+    }
+    sqlite3_bind_text(spanStmt, 1, name, -1, SQLITE_STATIC);
+    sqlite3_bind_text(spanStmt, 2, span.kind.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_double(spanStmt, 3, span.start.time_since_epoch().count());
+    sqlite3_bind_double(spanStmt, 4, stop.time_since_epoch().count());
+
+    int rc = sqlite3_step(spanStmt);
+
+    if (rc != SQLITE_DONE) {
+        std::cerr << "Execution failed: " << sqlite3_errmsg(db) << std::endl;
+        std::cerr << "Span was:" 
+                    << " " << span.name 
+                    << " " << span.kind
+                    << " " << span.start.time_since_epoch().count()
+                    << " " << stop.time_since_epoch().count()
+                    << "\n";
+        exit(1);
+    }
+    sqlite3_reset(spanStmt);
 }
 
 static void record_event(const Event &event, const TimePoint &time) {
-        sqlite3_bind_text(eventStmt, 1, event.name.c_str(), -1, SQLITE_STATIC);
-        sqlite3_bind_text(eventStmt, 2, event.kind.c_str(), -1, SQLITE_STATIC);
-        sqlite3_bind_double(eventStmt, 3, time.time_since_epoch().count());
-        int rc = sqlite3_step(eventStmt);
-        if (rc != SQLITE_DONE) {
-            std::cerr << "Execution failed: " << sqlite3_errmsg(db) << std::endl;
-            exit(1);
-        }
-        sqlite3_reset(eventStmt);
+    const char *name = event.name.c_str();
+    if (!name) {
+        name = "<null name>";
+    }
+    sqlite3_bind_text(eventStmt, 1, name, -1, SQLITE_STATIC);
+    sqlite3_bind_text(eventStmt, 2, event.kind.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_double(eventStmt, 3, time.time_since_epoch().count());
+
+    Duration nextDelayMs = std::chrono::milliseconds(1);
+    int rc = sqlite3_step(eventStmt);
+
+    if (rc != SQLITE_DONE) {
+        std::cerr << "Execution failed: " << sqlite3_errmsg(db) << std::endl;
+        std::cerr << "Event was:" 
+                    << " " << event.name 
+                    << " " << event.kind
+                    << " " << time.time_since_epoch().count()
+                    << "\n";
+        exit(1);
+    }
+    sqlite3_reset(eventStmt);
 }
 
 // accepts the return value of the corresponding begin_parallel_for
