@@ -1,0 +1,43 @@
+# This starter workflow is for a CMake project running on a single platform. There is a different starter workflow if you need cross-platform coverage.
+# See: https://github.com/actions/starter-workflows/blob/main/ci/cmake-multi-platform.yml
+name: Ubuntu-OpenMPI
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_TYPE: RelWithDebInfo
+  BUILD_DIR: ${{github.workspace}}/build
+
+jobs:
+  build:
+    # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
+    # You can convert this to a matrix build if you need cross-platform coverage.
+    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install MPI
+      run: |
+        sudo apt-get update && sudo apt-get install -y libopenmpi-dev openmpi-bin cmake
+        which mpirun
+        mpirun --version
+        which mpicxx
+        mpicxx --version
+
+    - name: Configure CMake
+      run: cmake -B ${{env.BUILD_DIR}} -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DKTS_ENABLE_TESTS=ON -DKTS_ENABLE_MPI=ON
+
+    - name: Build
+      run: cmake --build ${{env.BUILD_DIR}}
+
+    - name: Test
+      working-directory: ${{github.workspace}}/build
+      run: ctest -C ${{env.BUILD_DIR}}
+
