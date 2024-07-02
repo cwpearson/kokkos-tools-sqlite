@@ -6,6 +6,7 @@
 static void BM_spans(benchmark::State& state) {
   for (auto _ : state) {
     Kokkos::parallel_for(0, KOKKOS_LAMBDA(int){});
+    Kokkos::fence();
   }
 }
 // Register the function as a benchmark

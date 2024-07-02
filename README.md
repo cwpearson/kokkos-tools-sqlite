@@ -27,5 +27,6 @@ SELECT Events.*
 FROM Events
 JOIN Spans ON Events.Time BETWEEN Spans.Start AND Spans.Stop
 WHERE Events.Kind = 'DEEPCOPY'
-  AND Spans.Name LIKE '%SPGEMM%';
+  AND Spans.Name LIKE '%SPGEMM%'
+  AND Spans.Kind = 'REGION';
 ```

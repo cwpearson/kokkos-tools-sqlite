@@ -54,6 +54,7 @@ static std::vector<Span> regions;
 static const char * KIND_PARFOR = "PARALLEL_FOR";
 static const char * KIND_REGION = "REGION";
 static const char * KIND_DEEPCOPY = "DEEPCOPY";
+static const char * KIND_FENCE = "FENCE";
 
 
 static void begin_transaction() {
@@ -169,13 +170,6 @@ void finalize() {
     db = nullptr;
 }
 
-// returns a unique id
-uint64_t begin_parallel_for(const char* name, const uint32_t devID) {
-    uint64_t kID = spanID++;
-    spans[kID] = Span(name, std::string(KIND_PARFOR) + "[" + std::to_string(devID) + "]", Clock::now());
-    return kID;
-}
-
 static void record_span(const Span &span, TimePoint &&stop) {
     const char *name = span.name.c_str();
     if (!name) {
@@ -225,6 +219,13 @@ static void record_event(const Event &event, const TimePoint &time) {
     sqlite3_reset(eventStmt);
 }
 
+// returns a unique id
+uint64_t begin_parallel_for(const char* name, const uint32_t devID) {
+    uint64_t kID = spanID++;
+    spans[kID] = Span(name, std::string(KIND_PARFOR) + "[" + std::to_string(devID) + "]", Clock::now());
+    return kID;
+}
+
 // accepts the return value of the corresponding begin_parallel_for
 void end_parallel_for(const uint64_t kID) {
     record_span(spans[kID], Clock::now());
@@ -257,6 +258,19 @@ void begin_deep_copy(const char *dstSpaceName, const char *dstName, const void *
       << "[" << dstSpaceName << "]"
       << "(" << size << ")";
     record_event(Event(ss.str(), KIND_DEEPCOPY), Clock::now());
+}
+
+// returns a unique id
+uint64_t begin_fence(const char* name, const uint32_t devID) {
+    uint64_t kID = spanID++;
+    spans[kID] = Span(name, std::string(KIND_FENCE) + "[" + std::to_string(devID) + "]", Clock::now());
+    return kID;
+}
+
+// accepts the return value of the corresponding begin_fence
+void end_fence(const uint64_t kID) {
+    record_span(spans[kID], Clock::now());
+    spans.erase(kID);
 }
 
 }

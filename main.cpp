@@ -67,3 +67,27 @@ extern "C" void kokkosp_begin_deep_copy(SpaceHandle dst_handle,
                                         const void* src_ptr, uint64_t size) {
   lib::begin_deep_copy(dst_handle.name, dst_name, dst_ptr, src_handle.name, src_name, src_ptr, size);
 }
+
+extern "C" void kokkosp_begin_fence(const char* name, const uint32_t devID,
+                                    uint64_t* kID) {
+  // filter out fence as this is a duplicate and unneeded (causing the tool to
+  // hinder performance of application). We use strstr for checking if the
+  // string contains the label of a fence (we assume the user will always have
+  // the word fence in the label of the fence).
+  if (std::strstr(name, "Kokkos Profile Tool Fence")) {
+    // set the dereferenced execution identifier to be the maximum value of
+    // uint64_t, which is assumed to never be assigned
+    *kID = std::numeric_limits<uint64_t>::max();
+  } else {
+    *kID = lib::begin_fence(name, devID);
+  }
+}
+
+extern "C" void kokkosp_end_fence(const uint64_t kID) {
+  // if we find the kID to be maximum value uint64_t, then the callback is
+  // dealing with the application's fence, which we filtered out in the callback
+  // for fences
+  if (kID != std::numeric_limits<uint64_t>::max()) {
+    lib::end_fence(kID);
+  }
+}
