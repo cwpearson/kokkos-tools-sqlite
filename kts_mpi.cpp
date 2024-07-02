@@ -9,7 +9,11 @@
 int kts_mpi_rank() {
     int rank = 0;
 #if defined(KTS_ENABLE_MPI)
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    int initialized;
+    MPI_Initialized(&initialized);
+    if (initialized) {
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    }
     return rank;
 #else
     {
