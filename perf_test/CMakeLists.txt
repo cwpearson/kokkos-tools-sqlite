@@ -18,3 +18,4 @@ function (kts_add_bench tgt)
 endfunction()
 
 kts_add_bench(perf_spans perf_spans.cpp)
+kts_add_bench(perf_events perf_events.cpp)
