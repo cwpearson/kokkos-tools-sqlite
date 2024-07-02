@@ -6,7 +6,7 @@ else()
   include(FetchContent)
   message(STATUS "acquiring remote Kokkos...")
   FetchContent_Declare(Kokkos
-    GIT_REPOSITORY    git@github.com:kokkos/kokkos.git
+    GIT_REPOSITORY    https://github.com/kokkos/kokkos.git
     GIT_TAG           master
   )
   FetchContent_MakeAvailable(Kokkos)

@@ -5,7 +5,7 @@ FetchContent_Declare(
   URL https://github.com/google/benchmark/archive/refs/tags/v1.8.3.zip
 )
 FetchContent_Declare(Kokkos
-  GIT_REPOSITORY    git@github.com:kokkos/kokkos.git
+  GIT_REPOSITORY    https://github.com/kokkos/kokkos.git
   GIT_TAG           master
 )
 FetchContent_MakeAvailable(benchmark Kokkos)
