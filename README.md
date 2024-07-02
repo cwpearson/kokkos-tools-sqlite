@@ -1,6 +1,6 @@
 # Kokkos Tools Sqlite (KTS)
 
-Capture Kokkos profiling information in an sqlite library
+Capture Kokkos profiling information in an sqlite database.
 
 ## Getting Started
 
