@@ -18,6 +18,27 @@ Optionally, you can control the path to the generated sqlite file. The provided 
 export KTS_SQLITE_PREFIX=path/to/output/prefix
 ```
 
+## Schema
+
+### Spans Table
+
+| Column | Type    | Constraints                |
+|--------|---------|----------------------------|
+| ID     | INTEGER | PRIMARY KEY, AUTOINCREMENT |
+| Name   | TEXT    | NOT NULL                   |
+| Kind   | TEXT    | NOT NULL                   |
+| Start  | REAL    | NOT NULL                   |
+| Stop   | REAL    | NOT NULL                   |
+
+### Events Table
+
+| Column | Type    | Constraints                |
+|--------|---------|----------------------------|
+| ID     | INTEGER | PRIMARY KEY, AUTOINCREMENT |
+| Name   | TEXT    | NOT NULL                   |
+| Kind   | TEXT    | NOT NULL                   |
+| Time   | REAL    | NOT NULL                   |
+
 ## Examples
 
 **Find all `DEEPCOPY` events that happen in a region with a name that includes `SPGEMM`**
