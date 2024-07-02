@@ -46,62 +46,11 @@ struct Event {
     Event(const std::string &_name, const std::string &_kind) : name(_name), kind(_kind) {}
 };
 
-class Worker {
-public:
-
-    Worker() : done_(false) {
-        thread_ = std::thread(&Worker::process_queue, this);
-    }
-
-    ~Worker() {
-        {
-            std::unique_lock<std::mutex> lock(mutex);
-            std::cerr << __FILE__ << ":" << __LINE__ << " draining " << jobs.size() << " records...\n";
-            done_ = true;
-            condition.notify_one();
-        }
-        thread_.join();
-    }
-
-    void add_job(std::function<void()> job) {
-        std::unique_lock<std::mutex> lock(mutex);
-        jobs.push(job);
-        condition.notify_one();
-    }
-
-private:
-    void process_queue() {
-        while (true) {
-            std::function<void()> job;
-            {
-                std::unique_lock<std::mutex> lock(mutex);
-                condition.wait(lock, [this] { return !jobs.empty() || done_; });
-                if (done_ && jobs.empty()) {
-                    return;
-                }
-                job = jobs.front();
-                jobs.pop();
-            }
-            job(); // Execute job
-        }
-    }
-
-
-    std::thread thread_;
-    std::queue<std::function<void()>> jobs;
-    std::mutex mutex;
-    std::condition_variable condition;
-    bool done_;
-
-};
-
 static std::unordered_map<uint64_t, Span> spans;
 static std::vector<Span> regions;
 static const char * KIND_PARFOR = "PARALLEL_FOR";
 static const char * KIND_REGION = "REGION";
 static const char * KIND_DEEPCOPY = "DEEPCOPY";
-
-static std::unique_ptr<Worker> worker;
 
 void init() {
     std::cerr << "==== libkts.so: init ====\n";
@@ -185,16 +134,10 @@ void init() {
             exit(1);
         }
     }
-
-    // initialize worker thread
-    worker = std::make_unique<Worker>();
 }
 
 void finalize() {
     std::cerr << "==== libkts.so: finalize ====\n";
-
-    // drain worker
-    worker = nullptr;
 
     // commit transaction
     {
@@ -222,7 +165,6 @@ uint64_t begin_parallel_for(const char* name, const uint32_t devID) {
 }
 
 static void record_span(const Span &span, TimePoint &&stop) {
-    worker->add_job([=](){
         sqlite3_bind_text(spanStmt, 1, span.name.c_str(), -1, SQLITE_STATIC);
         sqlite3_bind_text(spanStmt, 2, span.kind.c_str(), -1, SQLITE_STATIC);
         sqlite3_bind_double(spanStmt, 3, span.start.time_since_epoch().count());
@@ -233,11 +175,9 @@ static void record_span(const Span &span, TimePoint &&stop) {
             exit(1);
         }
         sqlite3_reset(spanStmt);
-    });
 }
 
 static void record_event(const Event &event, const TimePoint &time) {
-    worker->add_job([=](){
         sqlite3_bind_text(eventStmt, 1, event.name.c_str(), -1, SQLITE_STATIC);
         sqlite3_bind_text(eventStmt, 2, event.kind.c_str(), -1, SQLITE_STATIC);
         sqlite3_bind_double(eventStmt, 3, time.time_since_epoch().count());
@@ -247,7 +187,6 @@ static void record_event(const Event &event, const TimePoint &time) {
             exit(1);
         }
         sqlite3_reset(eventStmt);
-    });
 }
 
 // accepts the return value of the corresponding begin_parallel_for
