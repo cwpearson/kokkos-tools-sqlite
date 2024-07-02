@@ -26,11 +26,15 @@ jobs:
 
     - name: Install MPI
       run: |
-        sudo apt-get update && sudo apt-get install -y libopenmpi-dev openmpi-bin cmake
+        sudo apt-get update && sudo apt-get install -y libopenmpi-dev openmpi-bin
         which mpirun
         mpirun --version
         which mpicxx
         mpicxx --version
+
+    - name: Install CMake and sqlite3
+      run: |
+        sudo apt-get update && sudo apt-get install -y libsqlite3-dev cmake
 
     - name: Configure CMake
       run: cmake -B ${{env.BUILD_DIR}} -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DKTS_ENABLE_TESTS=ON -DKTS_ENABLE_MPI=ON
@@ -40,5 +44,5 @@ jobs:
 
     - name: Test
       working-directory: ${{github.workspace}}/build
-      run: ctest -C ${{env.BUILD_DIR}}
+      run: ctest -V -C ${{env.BUILD_DIR}}
 
