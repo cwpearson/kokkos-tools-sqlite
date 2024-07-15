@@ -3,13 +3,13 @@
 #include "perf_main.hpp"
 
 
-static void BM_events(benchmark::State& state) {
+static void BM_deepcopy(benchmark::State& state) {
   Kokkos::View<double *> a("a", 0), b("b", 0);
   for (auto _ : state) {
     Kokkos::deep_copy(b, a);
   }
 }
 // Register the function as a benchmark
-BENCHMARK(BM_events);
+BENCHMARK(BM_deepcopy);
 
 KTS_BENCHMARK_MAIN();
