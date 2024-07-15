@@ -17,7 +17,7 @@
 #include <dlfcn.h>
 
 #include "kts.hpp"
-#include "kts_mpi.hpp"
+#include "kts_pid.hpp"
 
 using Clock = std::chrono::steady_clock;
 using Duration = std::chrono::duration<double>;
