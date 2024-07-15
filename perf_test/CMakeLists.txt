@@ -17,5 +17,5 @@ function (kts_add_bench tgt)
   set_property(TEST ${tgt} PROPERTY ENVIRONMENT "KOKKOS_TOOLS_LIBS=${CMAKE_BINARY_DIR}/libkts.so")
 endfunction()
 
-kts_add_bench(perf_spans perf_spans.cpp)
-kts_add_bench(perf_events perf_events.cpp)
+kts_add_bench(perf_fence perf_fence.cpp)
+kts_add_bench(perf_parfor perf_parfor.cpp)
