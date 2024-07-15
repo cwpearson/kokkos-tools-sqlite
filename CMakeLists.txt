@@ -20,11 +20,21 @@ if (KTS_ENABLE_MPI)
   message(STATUS "KTS: MPI_CXX_LIBRARIES =           ${MPI_CXX_LIBRARIES}")
 endif()
 
-add_library(kts SHARED main.cpp kts.cpp kts_mpi.cpp)
+include(CheckFunctionExists)
+check_function_exists(getpid KTS_HAVE_GETPID)
+
+if (NOT ${KTS_ENABLE_MPI} AND NOT ${KTS_HAVE_GETPID})
+  message(FATAL "Require MPI or getpid() to get a unique process ID")
+endif()
+
+add_library(kts SHARED main.cpp kts.cpp kts_pid.cpp)
 target_link_libraries(kts PRIVATE SQLite::SQLite3)
 if (KTS_ENABLE_MPI)
   target_compile_definitions(kts PRIVATE KTS_ENABLE_MPI)
   target_link_libraries(kts PRIVATE MPI::MPI_CXX)
+endif()
+if (KTS_HAVE_GETPID)
+  target_compile_definitions(kts PRIVATE KTS_HAVE_GETPID)
 endif()
 
 if(KTS_ENABLE_TESTS)
