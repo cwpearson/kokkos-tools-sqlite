@@ -23,7 +23,6 @@ using Clock = std::chrono::steady_clock;
 using Duration = std::chrono::duration<double>;
 using TimePoint = std::chrono::time_point<Clock>;
 
-
 namespace lib {
 
 static uint64_t spanID = 0;
@@ -57,6 +56,9 @@ static const char * KIND_DEEPCOPY = "DEEPCOPY";
 static const char * KIND_FENCE = "FENCE";
 
 
+
+
+
 static void begin_transaction() {
     char* errMsg = 0;
     int rc = sqlite3_exec(db, "BEGIN IMMEDIATE", 0, 0, &errMsg);
@@ -88,7 +90,6 @@ void init() {
     }
 
     std::string sqlitePath = std::string(sqlitePrefix) + std::to_string(kts_mpi_rank()) + ".sqlite";
-
     {
         std::cerr << __FILE__ << ":" << __LINE__ << " open " << sqlitePath << "\n";
         int rc = sqlite3_open(sqlitePath.c_str(), &db);
