@@ -9,6 +9,6 @@ static void BM_parfor(benchmark::State& state) {
   }
 }
 // Register the function as a benchmark
-BENCHMARK(BM_parfor);
+BENCHMARK(BM_parfor)->UseRealTime();
 
 KTS_BENCHMARK_MAIN();

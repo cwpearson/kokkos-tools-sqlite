@@ -57,7 +57,67 @@ static const char * KIND_FENCE = "FENCE";
 
 
 
+class Worker {
+public:
+  Worker() : stop_(true) {}
 
+  template <typename F>
+  void add_job(F &&f) {
+    {
+        std::unique_lock<std::mutex> lock(mutex_);
+        jobs_.emplace_back(std::forward<F>(f));
+    }
+    cv_.notify_one();
+  }
+
+  void start() {
+    thread_ = std::thread(&Worker::loop, this);
+    stop_ = false;
+  }
+
+  void join() {
+    std::cerr << __FILE__ << ":" << __LINE__ << " flush remaining records...\n";
+    {
+      std::unique_lock<std::mutex> lock(mutex_);
+      stop_ = true;
+    }
+    cv_.notify_one();
+    thread_.join();
+  }
+
+private:
+
+  void loop() {
+    
+    // std::cerr << __FILE__ << ":" << __LINE__ << " worker loop...\n";
+    while(true) {
+        std::vector<std::function<void()>> jobs;
+        // std::cerr << __FILE__ << ":" << __LINE__ << " worker lock entry...\n";
+        {
+            std::unique_lock<std::mutex> lock(mutex_);
+            cv_.wait(lock, [this]{return !jobs_.empty() || stop_;});
+            if (stop_ && jobs_.empty()) {
+                return;
+            }
+            // quickly take all existing jobs
+            std::swap(jobs, jobs_);
+        }
+        // std::cerr << __FILE__ << ":" << __LINE__ << " worker release... " << jobs.size() << "\n";
+        for (const auto &job : jobs) {
+            job();
+        }
+    }
+  }
+
+  std::thread thread_;
+  std::vector<std::function<void()>> jobs_;
+  std::condition_variable cv_;
+  std::mutex mutex_;
+
+  bool stop_;
+};
+
+static Worker worker;
 
 static void begin_transaction() {
     char* errMsg = 0;
@@ -84,6 +144,7 @@ static void commit_transaction() {
 void init() {
     std::cerr << "==== libkts.so: init ====\n";
     std::cerr << __FILE__ << ":" << __LINE__ << " " << kts_mpi_rank() << "\n";
+    worker.start();
     const char* sqlitePrefix = std::getenv("KTS_SQLITE_PREFIX");
     if (!sqlitePrefix) {
         sqlitePrefix = "kts_";
@@ -164,6 +225,7 @@ void init() {
 void finalize() {
     std::cerr << "==== libkts.so: finalize ====\n";
 
+    worker.join();
     commit_transaction();
     sqlite3_finalize(spanStmt);
     sqlite3_finalize(eventStmt);
@@ -172,6 +234,9 @@ void finalize() {
 }
 
 static void record_span(const Span &span, TimePoint &&stop) {
+
+    worker.add_job([=]{
+
     const char *name = span.name.c_str();
     if (!name) {
         name = "<null name>";
@@ -194,9 +259,14 @@ static void record_span(const Span &span, TimePoint &&stop) {
         exit(1);
     }
     sqlite3_reset(spanStmt);
+
+    });
 }
 
 static void record_event(const Event &event, const TimePoint &time) {
+
+    worker.add_job([=]{
+
     const char *name = event.name.c_str();
     if (!name) {
         name = "<null name>";
@@ -218,6 +288,8 @@ static void record_event(const Event &event, const TimePoint &time) {
         exit(1);
     }
     sqlite3_reset(eventStmt);
+
+    });
 }
 
 // returns a unique id

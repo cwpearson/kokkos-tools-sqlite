@@ -10,6 +10,6 @@ static void BM_deepcopy(benchmark::State& state) {
   }
 }
 // Register the function as a benchmark
-BENCHMARK(BM_deepcopy);
+BENCHMARK(BM_deepcopy)->UseRealTime();
 
 KTS_BENCHMARK_MAIN();

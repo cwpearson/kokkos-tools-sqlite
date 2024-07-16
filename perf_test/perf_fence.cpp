@@ -9,6 +9,6 @@ static void BM_fence(benchmark::State& state) {
   }
 }
 // Register the function as a benchmark
-BENCHMARK(BM_fence);
+BENCHMARK(BM_fence)->UseRealTime();
 
 KTS_BENCHMARK_MAIN();
