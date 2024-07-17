@@ -15,11 +15,11 @@
 //@HEADER
 
 #include <cstdio>
-#include <inttypes.h>
-#include <vector>
-#include <string>
-#include <limits>
 #include <cstring>
+#include <inttypes.h>
+#include <limits>
+#include <string>
+#include <vector>
 
 #include "kts.hpp"
 
@@ -30,19 +30,16 @@ struct SpaceHandle {
 extern "C" void kokkosp_init_library(const int loadSeq,
                                      const uint64_t interfaceVer,
                                      const uint32_t /*devInfoCount*/,
-                                     void* /*deviceInfo*/) {
-
+                                     void * /*deviceInfo*/) {
 
   lib::init();
 }
 
-extern "C" void kokkosp_finalize_library() {
-  lib::finalize();
-}
+extern "C" void kokkosp_finalize_library() { lib::finalize(); }
 
-extern "C" void kokkosp_begin_parallel_for(const char* name,
+extern "C" void kokkosp_begin_parallel_for(const char *name,
                                            const uint32_t devID,
-                                           uint64_t* kID) {
+                                           uint64_t *kID) {
   *kID = lib::begin_parallel_for(name, devID);
 }
 
@@ -50,26 +47,24 @@ extern "C" void kokkosp_end_parallel_for(const uint64_t kID) {
   lib::end_parallel_for(kID);
 }
 
-
-extern "C" void kokkosp_push_profile_region(char* regionName) {
+extern "C" void kokkosp_push_profile_region(char *regionName) {
   lib::push_profile_region(regionName);
 }
 
-extern "C" void kokkosp_pop_profile_region() {
-  lib::pop_profile_region();
-}
+extern "C" void kokkosp_pop_profile_region() { lib::pop_profile_region(); }
 
 extern "C" void kokkosp_begin_deep_copy(SpaceHandle dst_handle,
-                                        const char* dst_name,
-                                        const void* dst_ptr,
+                                        const char *dst_name,
+                                        const void *dst_ptr,
                                         SpaceHandle src_handle,
-                                        const char* src_name,
-                                        const void* src_ptr, uint64_t size) {
-  lib::begin_deep_copy(dst_handle.name, dst_name, dst_ptr, src_handle.name, src_name, src_ptr, size);
+                                        const char *src_name,
+                                        const void *src_ptr, uint64_t size) {
+  lib::begin_deep_copy(dst_handle.name, dst_name, dst_ptr, src_handle.name,
+                       src_name, src_ptr, size);
 }
 
-extern "C" void kokkosp_begin_fence(const char* name, const uint32_t devID,
-                                    uint64_t* kID) {
+extern "C" void kokkosp_begin_fence(const char *name, const uint32_t devID,
+                                    uint64_t *kID) {
   // filter out fence as this is a duplicate and unneeded (causing the tool to
   // hinder performance of application). We use strstr for checking if the
   // string contains the label of a fence (we assume the user will always have

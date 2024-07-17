@@ -2,8 +2,7 @@
 
 #include "perf_main.hpp"
 
-
-static void BM_fence(benchmark::State& state) {
+static void BM_fence(benchmark::State &state) {
   for (auto _ : state) {
     Kokkos::fence();
   }
