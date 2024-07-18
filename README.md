@@ -51,3 +51,12 @@ WHERE Events.Kind = 'DEEPCOPY'
   AND Spans.Name LIKE '%SPGEMM%'
   AND Spans.Kind = 'REGION';
 ```
+
+## Contributing
+
+Format with clang-format-16
+
+```bash
+shopt -s globstar
+podman run --rm -v ${PWD}:/src ghcr.io/cwpearson/clang-format-16 clang-format -i *.[ch]pp {unit_test,perf_test}/**/*.[ch]pp
+```
