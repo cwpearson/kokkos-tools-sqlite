@@ -7,7 +7,7 @@ For MPI programs, each Kokkos process writes to a different database file.
 
 ```bash
 mkdir build
-cmake -S build
+cmake -S . -B build
 
 export KOKKOS_TOOLS_LIBS=$(realpath build/libkts.so)
 
