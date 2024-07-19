@@ -1,6 +1,7 @@
 # Kokkos Tools Sqlite (KTS)
 
 Capture Kokkos profiling information in an sqlite database.
+For MPI programs, each Kokkos process writes to a different database file.
 
 ## Getting Started
 
@@ -13,7 +14,7 @@ export KOKKOS_TOOLS_LIBS=$(realpath build/libkts.so)
 ./your/kokkos/program
 ```
 
-Optionally, you can control the path to the generated sqlite file. The provided prefix will be appended with the MPI rank (or `0` in the case of no MPI).
+Optionally, you can control the path to the generated sqlite file(s). The provided prefix will be appended with the MPI rank (or `0` in the case of no MPI).
 ```bash
 export KTS_SQLITE_PREFIX=path/to/output/prefix
 ```
@@ -51,6 +52,16 @@ WHERE Events.Kind = 'DEEPCOPY'
   AND Spans.Name LIKE '%SPGEMM%'
   AND Spans.Kind = 'REGION';
 ```
+
+## Roadmap
+
+- [x] parallel_for
+- [x] deep_copy
+- [x] fence
+- [x] profiling regions
+- [ ] allocate
+- [ ] deallocate
+- [ ] Binary tool to convert sqlite to chrome-tracing JSON format
 
 ## Contributing
 
