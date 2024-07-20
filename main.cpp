@@ -86,3 +86,13 @@ extern "C" void kokkosp_end_fence(const uint64_t kID) {
     lib::end_fence(kID);
   }
 }
+
+extern "C" void kokkosp_allocate_data(SpaceHandle handle, const char *name,
+                                      void *ptr, uint64_t size) {
+  lib::allocate_data(handle.name, name, ptr, size);
+}
+
+extern "C" void kokkosp_deallocate_data(SpaceHandle handle, const char *name,
+                                        void *ptr, uint64_t size) {
+  lib::deallocate_data(handle.name, name, ptr, size);
+}

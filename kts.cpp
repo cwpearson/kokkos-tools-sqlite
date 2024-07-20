@@ -56,6 +56,8 @@ static const char *KIND_PARFOR = "PARALLEL_FOR";
 static const char *KIND_REGION = "REGION";
 static const char *KIND_DEEPCOPY = "DEEPCOPY";
 static const char *KIND_FENCE = "FENCE";
+static const char *KIND_ALLOC = "ALLOC";
+static const char *KIND_DEALLOC = "DEALLOC";
 
 class Worker {
 public:
@@ -343,5 +345,16 @@ void end_fence(const uint64_t kID) {
   record_span(spans[kID], Clock::now());
   spans.erase(kID);
 }
+
+void allocate_data(const char *spaceName, const char *name, void *ptr,
+                   size_t size) {
+  auto when = Clock::now();
+  record_event(Event(name, KIND_ALLOC), when);
+                   }
+void deallocate_data(const char *spaceName, const char *name, void *ptr,
+                     size_t size) {
+  auto when = Clock::now();
+  record_event(Event(name, KIND_DEALLOC), when);
+                     }
 
 } // namespace lib
