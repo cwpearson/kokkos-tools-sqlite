@@ -66,6 +66,10 @@ WHERE Events.Kind = 'DEEPCOPY'
 
 ## Contributing
 
+* Examples of the Kokkos profiling interface
+  * [Kokkos_Profiling_C_Interface.hpp](https://github.com/kokkos/kokkos/blob/develop/core/src/impl/Kokkos_Profiling_C_Interface.h)
+  * [Simple Kernel Logger](https://github.com/kokkos/kokkos-tools/blob/develop/debugging/kernel-logger/kp_kernel_logger.cpp)
+
 Format with clang-format-16
 
 ```bash
