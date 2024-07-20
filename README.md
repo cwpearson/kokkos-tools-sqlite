@@ -62,6 +62,7 @@ WHERE Events.Kind = 'DEEPCOPY'
 - [ ] allocate
 - [ ] deallocate
 - [ ] Binary tool to convert sqlite to chrome-tracing JSON format
+- [ ] Binary tool to convert sqlite to `kokkosp_` callbacks
 
 ## Contributing
 
