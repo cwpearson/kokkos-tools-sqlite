@@ -59,8 +59,8 @@ WHERE Events.Kind = 'DEEPCOPY'
 - [x] deep_copy
 - [x] fence
 - [x] profiling regions
-- [ ] allocate
-- [ ] deallocate
+- [x] allocate
+- [x] deallocate
 - [ ] Binary tool to convert sqlite to chrome-tracing JSON format
 - [ ] Binary tool to convert sqlite to `kokkosp_` callbacks
 
