@@ -60,7 +60,6 @@ static void read_trace(json &eventArray, const std::string &path) {
                                   {"ph", PHASE_INSTANT},
                                   {"ts", std::to_string(timeUs).c_str()},
                                   {"pid", rank},
-                                  {"tid", ""},
                                   {"args", json({})}});
     return 0;
   };
@@ -146,5 +145,5 @@ int main(int argc, char **argv) {
   j["otherData"] = json{{"version", "kts chrome-tracing"}};
   j["stackFrames"] = json({});
   j["samples"] = json::array();
-  std::ofstream("test.json", std::ios::binary) << j << "\n";
+  std::ofstream("test.json", std::ios::binary) << std::setw(4) << j << "\n";
 }
