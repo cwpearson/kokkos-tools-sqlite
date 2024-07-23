@@ -86,6 +86,8 @@ build/bin/chrome-tracing kts_0.sqlite
 ## Roadmap
 
 - [x] parallel_for
+- [ ] parallel_reduce
+- [ ] parallel_scan
 - [x] deep_copy
 - [x] fence
 - [x] profiling regions
