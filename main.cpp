@@ -44,7 +44,27 @@ extern "C" void kokkosp_begin_parallel_for(const char *name,
 }
 
 extern "C" void kokkosp_end_parallel_for(const uint64_t kID) {
-  lib::end_parallel_for(kID);
+  lib::end_parallel_region(kID);
+}
+
+extern "C" void kokkosp_begin_parallel_reduce(const char *name,
+                                              const uint32_t devID,
+                                              uint64_t *kID) {
+  *kID = lib::begin_parallel_reduce(name, devID);
+}
+
+extern "C" void kokkosp_end_parallel_reduce(const uint64_t kID) {
+  lib::end_parallel_region(kID);
+}
+
+extern "C" void kokkosp_begin_parallel_scan(const char *name,
+                                            const uint32_t devID,
+                                            uint64_t *kID) {
+  *kID = lib::begin_parallel_scan(name, devID);
+}
+
+extern "C" void kokkosp_end_parallel_scan(const uint64_t kID) {
+  lib::end_parallel_region(kID);
 }
 
 extern "C" void kokkosp_push_profile_region(char *regionName) {
