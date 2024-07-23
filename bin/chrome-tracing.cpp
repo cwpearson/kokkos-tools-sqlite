@@ -22,10 +22,11 @@ struct DurationEvent {
   std::string cat;
   std::string ph;
   double ts;
+  int pid;
 
-  DurationEvent(const char *name_, const char *cat_, const char *ph_,
-                double ts_)
-      : name(name_), cat(cat_), ph(ph_), ts(ts_) {}
+  DurationEvent(const int pid_, const char *name_, const char *cat_,
+                const char *ph_, double ts_)
+      : pid(pid_), name(name_), cat(cat_), ph(ph_), ts(ts_) {}
 };
 
 static void read_trace(json &eventArray, const std::string &path) {
@@ -44,18 +45,21 @@ static void read_trace(json &eventArray, const std::string &path) {
     json *eventArray = static_cast<json *>(data);
 
     // std::string idStr = argv[0];
-    const char *name = argv[1];
-    const char *kind = argv[2];
-    const char *timeStr = argv[3];
+    const char *rankStr = argv[1];
+    const char *name = argv[2];
+    const char *kind = argv[3];
+    const char *timeStr = argv[4];
 
     // time comes in as real seconds. output expects microseconds
     const double timeUs = std::atof(timeStr) * 1000000;
+
+    const int rank = std::atoi(rankStr);
 
     eventArray->emplace_back(json{{"name", name},
                                   {"cat", kind},
                                   {"ph", PHASE_INSTANT},
                                   {"ts", std::to_string(timeUs).c_str()},
-                                  {"pid", ""},
+                                  {"pid", rank},
                                   {"tid", ""},
                                   {"args", json({})}});
     return 0;
@@ -69,17 +73,20 @@ static void read_trace(json &eventArray, const std::string &path) {
         static_cast<std::vector<DurationEvent> *>(data);
 
     // std::string idStr = argv[0];
-    const char *name = argv[1];
-    const char *kind = argv[2];
-    const char *startStr = argv[3];
-    const char *stopStr = argv[4];
+    const char *rankStr = argv[1];
+    const char *name = argv[2];
+    const char *kind = argv[3];
+    const char *startStr = argv[4];
+    const char *stopStr = argv[5];
+
+    const int rank = std::atoi(rankStr);
 
     // time comes in as real seconds. output expects microseconds
     const double startUs = std::atof(startStr) * 1000000;
     const double stopUs = std::atof(stopStr) * 1000000;
 
-    durEvents->emplace_back(name, kind, PHASE_BEGIN, startUs);
-    durEvents->emplace_back(name, kind, PHASE_END, stopUs);
+    durEvents->emplace_back(rank, name, kind, PHASE_BEGIN, startUs);
+    durEvents->emplace_back(rank, name, kind, PHASE_END, stopUs);
     return 0;
   };
 
@@ -116,7 +123,8 @@ static void read_trace(json &eventArray, const std::string &path) {
     eventArray.emplace_back(json{{"name", de.name},
                                  {"cat", de.cat},
                                  {"ph", de.ph},
-                                 {"ts", std::to_string(de.ts).c_str()}});
+                                 {"ts", std::to_string(de.ts).c_str()},
+                                 {"pid", de.pid}});
   }
 
   sqlite3_close(db);

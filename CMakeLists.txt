@@ -5,6 +5,12 @@ option(KTS_ENABLE_MPI "build with MPI support" OFF)
 
 project(SQLiteExample)
 
+if(NOT CMAKE_BUILD_TYPE)
+    # Set build type to RelWithDebInfo
+    message(STATUS "CMAKE_BUILD_TYPE unset, setting to RelWithDebInfo")
+    set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "" FORCE)
+endif()
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
