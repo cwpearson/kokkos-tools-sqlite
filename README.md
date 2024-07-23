@@ -59,6 +59,19 @@ WHERE Events.Kind = 'DEEPCOPY'
   AND Spans.Kind = 'REGION';
 ```
 
+**Convert trace database to chrome-tracing format**
+
+```bash
+# record trace (produces kts_0.sqlite)
+export KOKKOS_TOOLS_LIBS=$(realpath build/libkts.so)
+./your/kokkos/program
+
+# convert to chrome-tracing json format (produces test.json)
+build/bin/chrome-tracing kts_0.sqlite
+
+# drag `test.json` into chrome://tracing
+```
+
 ## Roadmap
 
 - [x] parallel_for
