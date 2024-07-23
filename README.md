@@ -53,6 +53,12 @@ export KTS_SQLITE_PREFIX=path/to/output/prefix_
 
 ## Examples
 
+**Find the average time consumed by a parallel region**
+
+```sql
+SELECT AVG(Spans.Stop - Spans.Start) FROM Spans WHERE Spans.Kind LIKE '%PARALLEL%';
+```
+
 **Find all `DEEPCOPY` events that happen in a region with a name that includes `SPGEMM`**
 
 ```sql
