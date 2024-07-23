@@ -61,7 +61,7 @@ WHERE Events.Kind = 'DEEPCOPY'
 - [x] profiling regions
 - [ ] allocate
 - [ ] deallocate
-- [ ] Binary tool to convert sqlite to chrome-tracing JSON format
+- [x] Binary tool to convert sqlite to chrome-tracing JSON format
 - [ ] Binary tool to convert sqlite to `kokkosp_` callbacks
 
 ## Contributing
