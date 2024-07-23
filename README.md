@@ -67,7 +67,10 @@ WHERE Events.Kind = 'DEEPCOPY'
 - [x] profiling regions
 - [x] allocate
 - [x] deallocate
-- [x] Binary tool to convert sqlite to chrome-tracing JSON format
+- Chrome Tracing
+  - [x] Binary tool to convert sqlite to chrome-tracing JSON format
+  - [x] use `pid` field for MPI rank
+  - [ ] use `tid` field for execution space instance
 - [ ] Binary tool to convert sqlite to `kokkosp_` callbacks
 
 ## Contributing
