@@ -7,6 +7,8 @@ using json = nlohmann::json;
 
 #include <sqlite3.h>
 
+#include "kts_schema.hpp"
+
 static void help(std::ostream &os) {
   os << "Generate a chrome about://tracing json file from a saved trace";
 }

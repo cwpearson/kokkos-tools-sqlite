@@ -18,6 +18,7 @@
 
 #include "kts.hpp"
 #include "kts_pid.hpp"
+#include "kts_schema.hpp"
 
 using Clock = std::chrono::steady_clock;
 using Duration = std::chrono::duration<double>;
@@ -172,16 +173,9 @@ void init() {
 
   // create Spans table
   {
-    const char *createTableSQL = "CREATE TABLE IF NOT EXISTS Spans("
-                                 "ID INTEGER PRIMARY KEY AUTOINCREMENT,"
-                                 "Rank INTEGER NOT NULL,"
-                                 "Name TEXT NOT NULL,"
-                                 "Kind TEXT NOT NULL,"
-                                 "Start REAL NOT NULL,"
-                                 "Stop REAL NOT NULL);";
 
     char *errMsg = 0;
-    int rc = sqlite3_exec(db, createTableSQL, 0, 0, &errMsg);
+    int rc = sqlite3_exec(db, schema::Span::create_table_sql, 0, 0, &errMsg);
     if (rc != SQLITE_OK) {
       std::cerr << "SQL error: " << errMsg << std::endl;
       sqlite3_free(errMsg);
@@ -190,15 +184,8 @@ void init() {
 
   // create Events table
   {
-    const char *createTableSQL = "CREATE TABLE IF NOT EXISTS Events("
-                                 "ID INTEGER PRIMARY KEY AUTOINCREMENT,"
-                                 "Rank INTEGER NOT NULL,"
-                                 "Name TEXT NOT NULL,"
-                                 "Kind TEXT NOT NULL,"
-                                 "Time REAL NOT NULL);";
-
     char *errMsg = 0;
-    int rc = sqlite3_exec(db, createTableSQL, 0, 0, &errMsg);
+    int rc = sqlite3_exec(db, schema::Event::create_table_sql, 0, 0, &errMsg);
     if (rc != SQLITE_OK) {
       std::cerr << "SQL error: " << errMsg << std::endl;
       sqlite3_free(errMsg);
@@ -209,9 +196,7 @@ void init() {
 
   // prepare Span insertion statement
   {
-    const char *insertSQL = "INSERT INTO Spans (Rank, Name, Kind, Start, Stop) "
-                            "VALUES (?, ?, ?, ?, ?);";
-    int rc = sqlite3_prepare_v2(db, insertSQL, -1, &spanStmt, 0);
+    int rc = sqlite3_prepare_v2(db, schema::Span::insert_sql, -1, &spanStmt, 0);
     if (rc != SQLITE_OK) {
       std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db)
                 << std::endl;
@@ -222,9 +207,7 @@ void init() {
 
   // prepare Event insertion statement
   {
-    const char *insertSQL =
-        "INSERT INTO Events (Rank, Name, Kind, Time) VALUES (?, ?, ?, ?);";
-    int rc = sqlite3_prepare_v2(db, insertSQL, -1, &eventStmt, 0);
+    int rc = sqlite3_prepare_v2(db, schema::Event::insert_sql, -1, &eventStmt, 0);
     if (rc != SQLITE_OK) {
       std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db)
                 << std::endl;
