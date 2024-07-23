@@ -26,19 +26,25 @@ export KTS_SQLITE_PREFIX=path/to/output/prefix
 | Column | Type    | Constraints                |
 |--------|---------|----------------------------|
 | ID     | INTEGER | PRIMARY KEY, AUTOINCREMENT |
+| Rank   | INTEGER | NOT NULL                   |
 | Name   | TEXT    | NOT NULL                   |
 | Kind   | TEXT    | NOT NULL                   |
 | Start  | REAL    | NOT NULL                   |
 | Stop   | REAL    | NOT NULL                   |
+
+* `Rank` is the MPI rank or the process ID
 
 ### Events Table
 
 | Column | Type    | Constraints                |
 |--------|---------|----------------------------|
 | ID     | INTEGER | PRIMARY KEY, AUTOINCREMENT |
+| Rank   | INTEGER | NOT NULL                   |
 | Name   | TEXT    | NOT NULL                   |
 | Kind   | TEXT    | NOT NULL                   |
 | Time   | REAL    | NOT NULL                   |
+
+* `Rank` is the MPI rank or the process ID
 
 ## Examples
 
