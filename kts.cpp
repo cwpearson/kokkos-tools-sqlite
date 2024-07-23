@@ -350,11 +350,11 @@ void allocate_data(const char *spaceName, const char *name, void *ptr,
                    size_t size) {
   auto when = Clock::now();
   record_event(Event(name, KIND_ALLOC), when);
-                   }
+}
 void deallocate_data(const char *spaceName, const char *name, void *ptr,
                      size_t size) {
   auto when = Clock::now();
   record_event(Event(name, KIND_DEALLOC), when);
-                     }
+}
 
 } // namespace lib
