@@ -27,4 +27,9 @@ uint64_t begin_fence(const char *name, const uint32_t devID);
 // accepts the return value of the corresponding begin_fence
 void end_fence(const uint64_t kID);
 
+void allocate_data(const char *spaceName, const char *name, void *ptr,
+                   size_t size);
+void deallocate_data(const char *spaceName, const char *name, void *ptr,
+                     size_t size);
+
 } // namespace lib
