@@ -61,7 +61,7 @@ WHERE Events.Kind = 'DEEPCOPY'
 - [x] profiling regions
 - [x] allocate
 - [x] deallocate
-- [ ] Binary tool to convert sqlite to chrome-tracing JSON format
+- [x] Binary tool to convert sqlite to chrome-tracing JSON format
 - [ ] Binary tool to convert sqlite to `kokkosp_` callbacks
 
 ## Contributing
@@ -74,5 +74,5 @@ Format with clang-format-16
 
 ```bash
 shopt -s globstar
-podman run --rm -v ${PWD}:/src ghcr.io/cwpearson/clang-format-16 clang-format -i *.[ch]pp {unit_test,perf_test}/**/*.[ch]pp
+podman run --rm -v ${PWD}:/src ghcr.io/cwpearson/clang-format-16 clang-format -i *.[ch]pp {bin,perf_test,unit_test}/**/*.[ch]pp
 ```
