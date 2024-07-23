@@ -149,7 +149,8 @@ static void commit_transaction() {
 
 void init() {
   std::cerr << "==== libkts.so: init ====\n";
-  std::cerr << __FILE__ << ":" << __LINE__ << " " << kts_mpi_rank() << "\n";
+  rank = kts_mpi_rank();
+  std::cerr << __FILE__ << ":" << __LINE__ << " " << rank << "\n";
   worker.start();
   const char *sqlitePrefix = std::getenv("KTS_SQLITE_PREFIX");
   if (!sqlitePrefix) {
@@ -157,7 +158,7 @@ void init() {
   }
 
   std::string sqlitePath =
-      std::string(sqlitePrefix) + std::to_string(kts_mpi_rank()) + ".sqlite";
+      std::string(sqlitePrefix) + std::to_string(rank) + ".sqlite";
   {
     std::cerr << __FILE__ << ":" << __LINE__ << " open " << sqlitePath << "\n";
     int rc = sqlite3_open(sqlitePath.c_str(), &db);
@@ -233,8 +234,6 @@ void init() {
   }
 
   begin_transaction();
-
-  rank = kts_mpi_rank();
   profileStart = Clock::now();
 }
 
