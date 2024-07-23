@@ -46,6 +46,11 @@ void init(sqlite3 *db) {
   }
 }
 
+void finalize(sqlite3 *) {
+  sqlite3_finalize(Event::insert_stmt);
+  sqlite3_finalize(Span::insert_stmt);
+}
+
 void insert(sqlite3 *db, const Span &span) {
   sqlite3_bind_int(Span::insert_stmt, 1, span.rank);
   sqlite3_bind_text(Span::insert_stmt, 2, span.name.c_str(), -1, SQLITE_STATIC);

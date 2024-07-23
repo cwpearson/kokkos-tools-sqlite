@@ -203,8 +203,7 @@ void finalize() {
 
   worker.join();
   commit_transaction();
-  sqlite3_finalize(schema::Event::insert_stmt);
-  sqlite3_finalize(schema::Span::insert_stmt);
+  schema::finalize(db);
   sqlite3_close(db);
   db = nullptr;
 }

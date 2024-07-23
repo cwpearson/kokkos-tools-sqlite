@@ -51,6 +51,7 @@ struct Span {
 };
 
 void init(sqlite3 *db);
+void finalize(sqlite3 *db);
 void insert(sqlite3 *db, const Span &span);
 void insert(sqlite3 *db, const Event &event);
 
