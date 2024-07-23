@@ -207,7 +207,8 @@ void init() {
 
   // prepare Event insertion statement
   {
-    int rc = sqlite3_prepare_v2(db, schema::Event::insert_sql, -1, &eventStmt, 0);
+    int rc =
+        sqlite3_prepare_v2(db, schema::Event::insert_sql, -1, &eventStmt, 0);
     if (rc != SQLITE_OK) {
       std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db)
                 << std::endl;

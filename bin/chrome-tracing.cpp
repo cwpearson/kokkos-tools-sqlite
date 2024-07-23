@@ -20,14 +20,14 @@ static const char *PHASE_BEGIN = "B";
 static const char *PHASE_END = "E";
 
 struct DurationEvent {
+  int pid;
   std::string name;
   std::string cat;
   std::string ph;
   double ts;
-  int pid;
 
-  DurationEvent(const int pid_, const char *name_, const char *cat_,
-                const char *ph_, double ts_)
+  DurationEvent(const int pid_, const std::string &name_,
+                const std::string &cat_, const char *ph_, double ts_)
       : pid(pid_), name(name_), cat(cat_), ph(ph_), ts(ts_) {}
 };
 
@@ -42,78 +42,37 @@ static void read_trace(json &eventArray, const std::string &path) {
     exit(1);
   }
 
-  auto event_callback = [](void *data, int argc, char **argv,
-                           char **azColName) -> int {
-    json *eventArray = static_cast<json *>(data);
-
-    // std::string idStr = argv[0];
-    const char *rankStr = argv[1];
-    const char *name = argv[2];
-    const char *kind = argv[3];
-    const char *timeStr = argv[4];
-
+  auto event_callback = [&](const schema::Event &event) -> int {
     // time comes in as real seconds. output expects microseconds
-    const double timeUs = std::atof(timeStr) * 1000000;
+    const double timeUs = event.time * 1000000;
 
-    const int rank = std::atoi(rankStr);
-
-    eventArray->emplace_back(json{{"name", name},
-                                  {"cat", kind},
-                                  {"ph", PHASE_INSTANT},
-                                  {"ts", std::to_string(timeUs).c_str()},
-                                  {"pid", rank},
-                                  {"args", json({})}});
+    eventArray.emplace_back(json{{"name", event.name},
+                                 {"cat", event.kind},
+                                 {"ph", PHASE_INSTANT},
+                                 {"ts", std::to_string(timeUs).c_str()},
+                                 {"pid", event.rank},
+                                 {"args", json({})}});
     return 0;
   };
 
+  std::vector<DurationEvent> durEvents;
   // converts database entries into DurationEvents, which later need to be
   // sorted by timestamp before they are dumped to json
-  auto span_callback = [](void *data, int argc, char **argv,
-                          char **azColName) -> int {
-    std::vector<DurationEvent> *durEvents =
-        static_cast<std::vector<DurationEvent> *>(data);
-
-    // std::string idStr = argv[0];
-    const char *rankStr = argv[1];
-    const char *name = argv[2];
-    const char *kind = argv[3];
-    const char *startStr = argv[4];
-    const char *stopStr = argv[5];
-
-    const int rank = std::atoi(rankStr);
-
+  auto span_callback = [&](const schema::Span &span) -> int {
     // time comes in as real seconds. output expects microseconds
-    const double startUs = std::atof(startStr) * 1000000;
-    const double stopUs = std::atof(stopStr) * 1000000;
+    const double startUs = span.start * 1000000;
+    const double stopUs = span.stop * 1000000;
 
-    durEvents->emplace_back(rank, name, kind, PHASE_BEGIN, startUs);
-    durEvents->emplace_back(rank, name, kind, PHASE_END, stopUs);
+    durEvents.emplace_back(span.rank, span.name, span.kind, PHASE_BEGIN,
+                           startUs);
+    durEvents.emplace_back(span.rank, span.name, span.kind, PHASE_END, stopUs);
     return 0;
   };
 
   std::cerr << __FILE__ << ":" << __LINE__ << " convert events\n";
-  {
-    // pass eventArray in as void * userData
-    char *errMsg;
-    rc = sqlite3_exec(db, "SELECT * FROM Events;", event_callback, &eventArray,
-                      &errMsg);
-    if (rc) {
-      std::cerr << "Can't exec: " << errMsg << std::endl;
-      exit(1);
-    }
-  }
+  schema::for_all_events(db, event_callback);
   std::cerr << __FILE__ << ":" << __LINE__ << " read spans\n";
-  std::vector<DurationEvent> durEvents;
-  {
-    // pass eventArray in as void * userData
-    char *errMsg;
-    rc = sqlite3_exec(db, "SELECT * FROM Spans;", span_callback, &durEvents,
-                      &errMsg);
-    if (rc) {
-      std::cerr << "Can't exec: " << errMsg << std::endl;
-      exit(1);
-    }
-  }
+  schema::for_all_spans(db, span_callback);
   std::cerr << __FILE__ << ":" << __LINE__ << " sort spans\n";
   std::sort(durEvents.begin(), durEvents.end(),
             [](const DurationEvent &a, const DurationEvent &b) {
