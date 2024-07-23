@@ -1,7 +1,7 @@
 # Kokkos Tools Sqlite (KTS)
 
 * Capture Kokkos profiling information in an sqlite database.
-* Use your own SQL to do custom performance analysis (see examples).
+* Answer your analysis questions with SQL (see examples).
 * For MPI programs, each Kokkos process writes to a different database file.
 
 ## Getting Started
