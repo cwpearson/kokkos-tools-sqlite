@@ -1,22 +1,27 @@
 # Kokkos Tools Sqlite (KTS)
 
-Capture Kokkos profiling information in an sqlite database.
-For MPI programs, each Kokkos process writes to a different database file.
+* Capture Kokkos profiling information in an sqlite database.
+* Use your own SQL to do custom performance analysis (see examples).
+* For MPI programs, each Kokkos process writes to a different database file.
 
 ## Getting Started
 
 ```bash
+# build KTS
 mkdir build
 cmake -S . -B build
 
+# set as kokkos tools library
 export KOKKOS_TOOLS_LIBS=$(realpath build/libkts.so)
 
-./your/kokkos/program
+# run your kokkos program (and KTS generates output sqlite database)
+your/kokkos/program
 ```
 
 Optionally, you can control the path to the generated sqlite file(s). The provided prefix will be appended with the MPI rank (or `0` in the case of no MPI).
 ```bash
-export KTS_SQLITE_PREFIX=path/to/output/prefix
+# KTS will generate path/to/output/prefix_{rank}.sqlite
+export KTS_SQLITE_PREFIX=path/to/output/prefix_
 ```
 
 ## Schema
@@ -81,12 +86,15 @@ build/bin/chrome-tracing kts_0.sqlite
 - [x] allocate
 - [x] deallocate
 - Chrome Tracing
-  - [x] Binary tool to convert sqlite to chrome-tracing JSON format
+  - [x] Tool to convert sqlite to chrome-tracing JSON format
   - [x] use `pid` field for MPI rank
   - [ ] use `tid` field for execution space instance
-- [ ] Binary tool to convert sqlite to `kokkosp_` callbacks
+- [ ] Tool to convert sqlite to `kokkosp_` callbacks
+- [ ] Tool to merge multi-process databases
 
 ## Contributing
+
+This project accepts contributions through Github pull requests.
 
 * Examples of the Kokkos profiling interface
   * [Kokkos_Profiling_C_Interface.hpp](https://github.com/kokkos/kokkos/blob/develop/core/src/impl/Kokkos_Profiling_C_Interface.h)
