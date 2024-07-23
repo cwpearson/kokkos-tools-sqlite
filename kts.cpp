@@ -29,15 +29,16 @@ static uint64_t spanID = 0;
 static sqlite3 *db = nullptr;
 static sqlite3_stmt *spanStmt = nullptr;
 static sqlite3_stmt *eventStmt = nullptr;
+static TimePoint profileStart;
 
 struct Span {
   std::string name;
   std::string kind;
-  TimePoint start;
+  Duration start;
 
   Span() = default;
   Span(const std::string &_name, const std::string &_kind,
-       const TimePoint &_start)
+       const Duration &_start)
       : name(_name), kind(_kind), start(_start) {}
 };
 
@@ -224,6 +225,8 @@ void init() {
   }
 
   begin_transaction();
+
+  profileStart = Clock::now();
 }
 
 void finalize() {
@@ -237,7 +240,7 @@ void finalize() {
   db = nullptr;
 }
 
-static void record_span(const Span &span, TimePoint &&stop) {
+static void record_span(const Span &span, Duration &&stop) {
 
   worker.add_job([=] {
     const char *name = span.name.c_str();
@@ -246,8 +249,8 @@ static void record_span(const Span &span, TimePoint &&stop) {
     }
     sqlite3_bind_text(spanStmt, 1, name, -1, SQLITE_STATIC);
     sqlite3_bind_text(spanStmt, 2, span.kind.c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_double(spanStmt, 3, span.start.time_since_epoch().count());
-    sqlite3_bind_double(spanStmt, 4, stop.time_since_epoch().count());
+    sqlite3_bind_double(spanStmt, 3, span.start.count());
+    sqlite3_bind_double(spanStmt, 4, stop.count());
 
     int rc = sqlite3_step(spanStmt);
 
@@ -255,15 +258,14 @@ static void record_span(const Span &span, TimePoint &&stop) {
       std::cerr << "Execution failed: " << sqlite3_errmsg(db) << std::endl;
       std::cerr << "Span was:"
                 << " " << span.name << " " << span.kind << " "
-                << span.start.time_since_epoch().count() << " "
-                << stop.time_since_epoch().count() << "\n";
+                << span.start.count() << " " << stop.count() << "\n";
       exit(1);
     }
     sqlite3_reset(spanStmt);
   });
 }
 
-static void record_event(const Event &event, const TimePoint &time) {
+static void record_event(const Event &event, Duration &&time) {
 
   worker.add_job([=] {
     const char *name = event.name.c_str();
@@ -272,7 +274,7 @@ static void record_event(const Event &event, const TimePoint &time) {
     }
     sqlite3_bind_text(eventStmt, 1, name, -1, SQLITE_STATIC);
     sqlite3_bind_text(eventStmt, 2, event.kind.c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_double(eventStmt, 3, time.time_since_epoch().count());
+    sqlite3_bind_double(eventStmt, 3, time.count());
 
     Duration nextDelayMs = std::chrono::milliseconds(1);
     int rc = sqlite3_step(eventStmt);
@@ -280,8 +282,8 @@ static void record_event(const Event &event, const TimePoint &time) {
     if (rc != SQLITE_DONE) {
       std::cerr << "Execution failed: " << sqlite3_errmsg(db) << std::endl;
       std::cerr << "Event was:"
-                << " " << event.name << " " << event.kind << " "
-                << time.time_since_epoch().count() << "\n";
+                << " " << event.name << " " << event.kind << " " << time.count()
+                << "\n";
       exit(1);
     }
     sqlite3_reset(eventStmt);
@@ -293,23 +295,23 @@ uint64_t begin_parallel_for(const char *name, const uint32_t devID) {
   uint64_t kID = spanID++;
   spans[kID] =
       Span(name, std::string(KIND_PARFOR) + "[" + std::to_string(devID) + "]",
-           Clock::now());
+           Clock::now() - profileStart);
   return kID;
 }
 
 // accepts the return value of the corresponding begin_parallel_for
 void end_parallel_for(const uint64_t kID) {
-  record_span(spans[kID], Clock::now());
+  record_span(spans[kID], Clock::now() - profileStart);
   spans.erase(kID);
 }
 
 void push_profile_region(const char *name) {
   spanID++;
-  regions.emplace_back(name, KIND_REGION, Clock::now());
+  regions.emplace_back(name, KIND_REGION, Clock::now() - profileStart);
 }
 void pop_profile_region() {
   if (!regions.empty()) {
-    record_span(regions.back(), Clock::now());
+    record_span(regions.back(), Clock::now() - profileStart);
     regions.pop_back();
   }
 }
@@ -326,7 +328,7 @@ void begin_deep_copy(const char *dstSpaceName, const char *dstName,
   ss << srcName << "[" << srcSpaceName << "]"
      << "->" << dstName << "[" << dstSpaceName << "]"
      << "(" << size << ")";
-  record_event(Event(ss.str(), KIND_DEEPCOPY), Clock::now());
+  record_event(Event(ss.str(), KIND_DEEPCOPY), Clock::now() - profileStart);
 }
 
 // returns a unique id
@@ -334,13 +336,13 @@ uint64_t begin_fence(const char *name, const uint32_t devID) {
   uint64_t kID = spanID++;
   spans[kID] =
       Span(name, std::string(KIND_FENCE) + "[" + std::to_string(devID) + "]",
-           Clock::now());
+           Clock::now() - profileStart);
   return kID;
 }
 
 // accepts the return value of the corresponding begin_fence
 void end_fence(const uint64_t kID) {
-  record_span(spans[kID], Clock::now());
+  record_span(spans[kID], Clock::now() - profileStart);
   spans.erase(kID);
 }
 

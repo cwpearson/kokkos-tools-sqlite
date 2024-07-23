@@ -8,7 +8,6 @@
 // delete everything in the parent of KTS_SQLITE_PREFIX that has the
 // $KTS_SQLITE_PREFIX(anything).sqlite
 inline static void delete_database() {
-
   namespace fs = std::filesystem;
 
   const char *rawPrefixPath = std::getenv("KTS_SQLITE_PREFIX");

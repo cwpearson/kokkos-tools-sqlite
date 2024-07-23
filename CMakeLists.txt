@@ -37,6 +37,8 @@ if (KTS_HAVE_GETPID)
   target_compile_definitions(kts PRIVATE KTS_HAVE_GETPID)
 endif()
 
+add_subdirectory(bin)
+
 if(KTS_ENABLE_TESTS)
     enable_testing()
     add_subdirectory(unit_test)
