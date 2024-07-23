@@ -28,8 +28,6 @@ namespace lib {
 
 static uint64_t spanID = 0;
 static sqlite3 *db = nullptr;
-static sqlite3_stmt *spanStmt = nullptr;
-static sqlite3_stmt *eventStmt = nullptr;
 static TimePoint profileStart; // when the profiling library was initialized, to
                                // normalize times
 static int rank = -1;
@@ -194,28 +192,7 @@ void init() {
 
   commit_transaction();
 
-  // prepare Span insertion statement
-  {
-    int rc = sqlite3_prepare_v2(db, schema::Span::insert_sql, -1, &spanStmt, 0);
-    if (rc != SQLITE_OK) {
-      std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db)
-                << std::endl;
-      sqlite3_close(db);
-      exit(1);
-    }
-  }
-
-  // prepare Event insertion statement
-  {
-    int rc =
-        sqlite3_prepare_v2(db, schema::Event::insert_sql, -1, &eventStmt, 0);
-    if (rc != SQLITE_OK) {
-      std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db)
-                << std::endl;
-      sqlite3_close(db);
-      exit(1);
-    }
-  }
+  schema::init(db);
 
   begin_transaction();
   profileStart = Clock::now();
@@ -226,8 +203,8 @@ void finalize() {
 
   worker.join();
   commit_transaction();
-  sqlite3_finalize(spanStmt);
-  sqlite3_finalize(eventStmt);
+  sqlite3_finalize(schema::Event::insert_stmt);
+  sqlite3_finalize(schema::Span::insert_stmt);
   sqlite3_close(db);
   db = nullptr;
 }
@@ -239,22 +216,8 @@ static void record_span(const Span &span, Duration &&stop) {
     if (!name) {
       name = "<null name>";
     }
-    sqlite3_bind_int(spanStmt, 1, span.rank);
-    sqlite3_bind_text(spanStmt, 2, name, -1, SQLITE_STATIC);
-    sqlite3_bind_text(spanStmt, 3, span.kind.c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_double(spanStmt, 4, span.start.count());
-    sqlite3_bind_double(spanStmt, 5, stop.count());
-
-    int rc = sqlite3_step(spanStmt);
-
-    if (rc != SQLITE_DONE) {
-      std::cerr << "Execution failed: " << sqlite3_errmsg(db) << std::endl;
-      std::cerr << "Span was:"
-                << " " << span.name << " " << span.kind << " "
-                << span.start.count() << " " << stop.count() << "\n";
-      exit(1);
-    }
-    sqlite3_reset(spanStmt);
+    schema::insert(db, schema::Span{span.rank, name, span.kind,
+                                    span.start.count(), stop.count()});
   });
 }
 
@@ -265,22 +228,9 @@ static void record_event(const Event &event, Duration &&time) {
     if (!name) {
       name = "<null name>";
     }
-    sqlite3_bind_int(eventStmt, 1, event.rank);
-    sqlite3_bind_text(eventStmt, 2, name, -1, SQLITE_STATIC);
-    sqlite3_bind_text(eventStmt, 3, event.kind.c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_double(eventStmt, 4, time.count());
 
-    Duration nextDelayMs = std::chrono::milliseconds(1);
-    int rc = sqlite3_step(eventStmt);
-
-    if (rc != SQLITE_DONE) {
-      std::cerr << "Execution failed: " << sqlite3_errmsg(db) << std::endl;
-      std::cerr << "Event was:"
-                << " " << event.name << " " << event.kind << " " << time.count()
-                << "\n";
-      exit(1);
-    }
-    sqlite3_reset(eventStmt);
+    schema::insert(db,
+                   schema::Event{event.rank, name, event.kind, time.count()});
   });
 }
 

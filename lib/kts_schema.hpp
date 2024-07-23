@@ -17,6 +17,7 @@ struct Event {
       "Time REAL NOT NULL);";
   static constexpr const char *insert_sql =
       "INSERT INTO Events (Rank, Name, Kind, Time) VALUES (?, ?, ?, ?);";
+  static sqlite3_stmt *insert_stmt;
 
   int rank;
   std::string name;
@@ -35,10 +36,10 @@ struct Span {
       "Kind TEXT NOT NULL,"
       "Start REAL NOT NULL,"
       "Stop REAL NOT NULL);";
-
   static constexpr const char *insert_sql =
       "INSERT INTO Spans (Rank, Name, Kind, Start, Stop) VALUES (?, ?, ?, ?, "
       "?);";
+  static sqlite3_stmt *insert_stmt;
 
   int rank;
   std::string name;
@@ -48,6 +49,10 @@ struct Span {
 
   static Span from_sqlite_args(int argc, char **argv);
 };
+
+void init(sqlite3 *db);
+void insert(sqlite3 *db, const Span &span);
+void insert(sqlite3 *db, const Event &event);
 
 using SpanCallback = std::function<int(const Span &span)>;
 using EventCallback = std::function<int(const Event &event)>;
