@@ -29,26 +29,30 @@ static uint64_t spanID = 0;
 static sqlite3 *db = nullptr;
 static sqlite3_stmt *spanStmt = nullptr;
 static sqlite3_stmt *eventStmt = nullptr;
-static TimePoint profileStart;
+static TimePoint profileStart; // when the profiling library was initialized, to
+                               // normalize times
+static int rank = -1;
 
 struct Span {
+  int rank;
   std::string name;
   std::string kind;
   Duration start;
 
   Span() = default;
-  Span(const std::string &_name, const std::string &_kind,
+  Span(int _rank, const std::string &_name, const std::string &_kind,
        const Duration &_start)
-      : name(_name), kind(_kind), start(_start) {}
+      : rank(_rank), name(_name), kind(_kind), start(_start) {}
 };
 
 struct Event {
+  int rank;
   std::string name;
   std::string kind;
 
   Event() = delete;
-  Event(const std::string &_name, const std::string &_kind)
-      : name(_name), kind(_kind) {}
+  Event(int _rank, const std::string &_name, const std::string &_kind)
+      : rank(_rank), name(_name), kind(_kind) {}
 };
 
 static std::unordered_map<uint64_t, Span> spans;
@@ -169,6 +173,7 @@ void init() {
   {
     const char *createTableSQL = "CREATE TABLE IF NOT EXISTS Spans("
                                  "ID INTEGER PRIMARY KEY AUTOINCREMENT,"
+                                 "Rank INTEGER NOT NULL,"
                                  "Name TEXT NOT NULL,"
                                  "Kind TEXT NOT NULL,"
                                  "Start REAL NOT NULL,"
@@ -186,6 +191,7 @@ void init() {
   {
     const char *createTableSQL = "CREATE TABLE IF NOT EXISTS Events("
                                  "ID INTEGER PRIMARY KEY AUTOINCREMENT,"
+                                 "Rank INTEGER NOT NULL,"
                                  "Name TEXT NOT NULL,"
                                  "Kind TEXT NOT NULL,"
                                  "Time REAL NOT NULL);";
@@ -202,8 +208,8 @@ void init() {
 
   // prepare Span insertion statement
   {
-    const char *insertSQL =
-        "INSERT INTO Spans (Name, Kind, Start, Stop) VALUES (?, ?, ?, ?);";
+    const char *insertSQL = "INSERT INTO Spans (Rank, Name, Kind, Start, Stop) "
+                            "VALUES (?, ?, ?, ?, ?);";
     int rc = sqlite3_prepare_v2(db, insertSQL, -1, &spanStmt, 0);
     if (rc != SQLITE_OK) {
       std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db)
@@ -216,7 +222,7 @@ void init() {
   // prepare Event insertion statement
   {
     const char *insertSQL =
-        "INSERT INTO Events (Name, Kind, Time) VALUES (?, ?, ?);";
+        "INSERT INTO Events (Rank, Name, Kind, Time) VALUES (?, ?, ?, ?);";
     int rc = sqlite3_prepare_v2(db, insertSQL, -1, &eventStmt, 0);
     if (rc != SQLITE_OK) {
       std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db)
@@ -228,6 +234,7 @@ void init() {
 
   begin_transaction();
 
+  rank = kts_mpi_rank();
   profileStart = Clock::now();
 }
 
@@ -249,10 +256,11 @@ static void record_span(const Span &span, Duration &&stop) {
     if (!name) {
       name = "<null name>";
     }
-    sqlite3_bind_text(spanStmt, 1, name, -1, SQLITE_STATIC);
-    sqlite3_bind_text(spanStmt, 2, span.kind.c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_double(spanStmt, 3, span.start.count());
-    sqlite3_bind_double(spanStmt, 4, stop.count());
+    sqlite3_bind_int(spanStmt, 1, span.rank);
+    sqlite3_bind_text(spanStmt, 2, name, -1, SQLITE_STATIC);
+    sqlite3_bind_text(spanStmt, 3, span.kind.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_double(spanStmt, 4, span.start.count());
+    sqlite3_bind_double(spanStmt, 5, stop.count());
 
     int rc = sqlite3_step(spanStmt);
 
@@ -274,9 +282,10 @@ static void record_event(const Event &event, Duration &&time) {
     if (!name) {
       name = "<null name>";
     }
-    sqlite3_bind_text(eventStmt, 1, name, -1, SQLITE_STATIC);
-    sqlite3_bind_text(eventStmt, 2, event.kind.c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_double(eventStmt, 3, time.count());
+    sqlite3_bind_int(eventStmt, 1, event.rank);
+    sqlite3_bind_text(eventStmt, 2, name, -1, SQLITE_STATIC);
+    sqlite3_bind_text(eventStmt, 3, event.kind.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_double(eventStmt, 4, time.count());
 
     Duration nextDelayMs = std::chrono::milliseconds(1);
     int rc = sqlite3_step(eventStmt);
@@ -295,9 +304,9 @@ static void record_event(const Event &event, Duration &&time) {
 // returns a unique id
 uint64_t begin_parallel_for(const char *name, const uint32_t devID) {
   uint64_t kID = spanID++;
-  spans[kID] =
-      Span(name, std::string(KIND_PARFOR) + "[" + std::to_string(devID) + "]",
-           Clock::now() - profileStart);
+  spans[kID] = Span(
+      rank, name, std::string(KIND_PARFOR) + "[" + std::to_string(devID) + "]",
+      Clock::now() - profileStart);
   return kID;
 }
 
@@ -309,7 +318,7 @@ void end_parallel_for(const uint64_t kID) {
 
 void push_profile_region(const char *name) {
   spanID++;
-  regions.emplace_back(name, KIND_REGION, Clock::now() - profileStart);
+  regions.emplace_back(rank, name, KIND_REGION, Clock::now() - profileStart);
 }
 void pop_profile_region() {
   if (!regions.empty()) {
@@ -330,15 +339,16 @@ void begin_deep_copy(const char *dstSpaceName, const char *dstName,
   ss << srcName << "[" << srcSpaceName << "]"
      << "->" << dstName << "[" << dstSpaceName << "]"
      << "(" << size << ")";
-  record_event(Event(ss.str(), KIND_DEEPCOPY), Clock::now() - profileStart);
+  record_event(Event(rank, ss.str(), KIND_DEEPCOPY),
+               Clock::now() - profileStart);
 }
 
 // returns a unique id
 uint64_t begin_fence(const char *name, const uint32_t devID) {
   uint64_t kID = spanID++;
-  spans[kID] =
-      Span(name, std::string(KIND_FENCE) + "[" + std::to_string(devID) + "]",
-           Clock::now() - profileStart);
+  spans[kID] = Span(rank, name,
+                    std::string(KIND_FENCE) + "[" + std::to_string(devID) + "]",
+                    Clock::now() - profileStart);
   return kID;
 }
 
@@ -350,13 +360,11 @@ void end_fence(const uint64_t kID) {
 
 void allocate_data(const char *spaceName, const char *name, void *ptr,
                    size_t size) {
-  auto when = Clock::now();
-  record_event(Event(name, KIND_ALLOC), when);
+  record_event(Event(rank, name, KIND_ALLOC), Clock::now() - profileStart);
 }
 void deallocate_data(const char *spaceName, const char *name, void *ptr,
                      size_t size) {
-  auto when = Clock::now();
-  record_event(Event(name, KIND_DEALLOC), when);
+  record_event(Event(rank, name, KIND_DEALLOC), Clock::now() - profileStart);
 }
 
 } // namespace lib
