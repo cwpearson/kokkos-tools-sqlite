@@ -97,8 +97,8 @@ build/bin/chrome-tracing kts_0.sqlite
   - [x] Tool to convert sqlite to chrome-tracing JSON format
   - [x] use `pid` field for MPI rank
   - [ ] use `tid` field for execution space instance
-- [ ] Tool to convert sqlite to `kokkosp_` callbacks
 - [ ] Tool to merge multi-process databases
+- [ ] Environment variable to overwrite existing database
 
 ## Contributing
 
