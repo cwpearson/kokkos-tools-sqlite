@@ -34,4 +34,6 @@ void allocate_data(const char *spaceName, const char *name, void *ptr,
 void deallocate_data(const char *spaceName, const char *name, void *ptr,
                      size_t size);
 
+void profile_event(const char *name);
+
 } // namespace lib

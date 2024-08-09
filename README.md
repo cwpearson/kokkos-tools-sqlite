@@ -52,7 +52,7 @@ export KTS_SQLITE_PREFIX=path/to/output/prefix_
 | Time   | REAL    | NOT NULL                   |
 
 * `Rank` is the MPI rank or the process ID
-* `Kind`: contains one of "DEEPCOPY", "FENCE", "ALLOC", "DEALLOC"
+* `Kind`: contains one of "DEEPCOPY", "FENCE", "ALLOC", "DEALLOC", "EVENT"
 
 ## Examples
 
@@ -71,6 +71,10 @@ JOIN Spans ON Events.Time BETWEEN Spans.Start AND Spans.Stop
 WHERE Events.Kind = 'DEEPCOPY'
   AND Spans.Name LIKE '%SPGEMM%'
   AND Spans.Kind = 'REGION';
+```
+
+```sql
+SELECT Event.* FROM Events WHERE Event.Kind = 'ALLOC';
 ```
 
 **Convert trace database to chrome-tracing format**
@@ -93,9 +97,10 @@ build/bin/chrome-tracing kts_0.sqlite
 - [x] parallel_scan
 - [x] deep_copy
 - [x] fence
-- [x] profiling regions
+- [x] pushRegion / popRegion
 - [x] allocate
 - [x] deallocate
+- [x] markEvent
 - Chrome Tracing
   - [x] Tool to convert sqlite to chrome-tracing JSON format
   - [x] use `pid` field for MPI rank

@@ -64,6 +64,7 @@ static const char *KIND_DEEPCOPY = "DEEPCOPY";
 static const char *KIND_FENCE = "FENCE";
 static const char *KIND_ALLOC = "ALLOC";
 static const char *KIND_DEALLOC = "DEALLOC";
+static const char *KIND_EVENT = "EVENT";
 
 class Worker {
 public:
@@ -313,6 +314,10 @@ void allocate_data(const char *spaceName, const char *name, void *ptr,
 void deallocate_data(const char *spaceName, const char *name, void *ptr,
                      size_t size) {
   record_event(Event(rank, name, KIND_DEALLOC), Clock::now() - profileStart);
+}
+
+void profile_event(const char *name) {
+  record_event(Event(rank, name, KIND_EVENT), Clock::now() - profileStart);
 }
 
 } // namespace lib

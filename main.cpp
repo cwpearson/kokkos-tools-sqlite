@@ -116,3 +116,7 @@ extern "C" void kokkosp_deallocate_data(SpaceHandle handle, const char *name,
                                         void *ptr, uint64_t size) {
   lib::deallocate_data(handle.name, name, ptr, size);
 }
+
+extern "C" void kokkosp_profile_event(char *eventName) {
+  lib::profile_event(eventName);
+}
