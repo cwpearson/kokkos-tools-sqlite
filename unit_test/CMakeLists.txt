@@ -20,7 +20,10 @@ function (kts_add_test tgt)
 endfunction()
 
 kts_add_test(test_parfor test_parfor.cpp)
+kts_add_test(test_parred test_parred.cpp)
+kts_add_test(test_parscan test_parscan.cpp)
 kts_add_test(test_deep_copy test_deep_copy.cpp)
 kts_add_test(test_view_init test_view_init.cpp)
+kts_add_test(test_event test_event.cpp)
 
 

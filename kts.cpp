@@ -57,11 +57,14 @@ struct Event {
 static std::unordered_map<uint64_t, Span> spans;
 static std::vector<Span> regions;
 static const char *KIND_PARFOR = "PARALLEL_FOR";
+static const char *KIND_PARRED = "PARALLEL_REDUCE";
+static const char *KIND_PARSCAN = "PARALLEL_SCAN";
 static const char *KIND_REGION = "REGION";
 static const char *KIND_DEEPCOPY = "DEEPCOPY";
 static const char *KIND_FENCE = "FENCE";
 static const char *KIND_ALLOC = "ALLOC";
 static const char *KIND_DEALLOC = "DEALLOC";
+static const char *KIND_EVENT = "EVENT";
 
 class Worker {
 public:
@@ -241,9 +244,23 @@ uint64_t begin_parallel_for(const char *name, const uint32_t devID) {
       Clock::now() - profileStart);
   return kID;
 }
+uint64_t begin_parallel_reduce(const char *name, const uint32_t devID) {
+  uint64_t kID = spanID++;
+  spans[kID] = Span(
+      rank, name, std::string(KIND_PARRED) + "[" + std::to_string(devID) + "]",
+      Clock::now() - profileStart);
+  return kID;
+}
+uint64_t begin_parallel_scan(const char *name, const uint32_t devID) {
+  uint64_t kID = spanID++;
+  spans[kID] = Span(
+      rank, name, std::string(KIND_PARSCAN) + "[" + std::to_string(devID) + "]",
+      Clock::now() - profileStart);
+  return kID;
+}
 
 // accepts the return value of the corresponding begin_parallel_for
-void end_parallel_for(const uint64_t kID) {
+void end_parallel_region(const uint64_t kID) {
   record_span(spans[kID], Clock::now() - profileStart);
   spans.erase(kID);
 }
@@ -297,6 +314,10 @@ void allocate_data(const char *spaceName, const char *name, void *ptr,
 void deallocate_data(const char *spaceName, const char *name, void *ptr,
                      size_t size) {
   record_event(Event(rank, name, KIND_DEALLOC), Clock::now() - profileStart);
+}
+
+void profile_event(const char *name) {
+  record_event(Event(rank, name, KIND_EVENT), Clock::now() - profileStart);
 }
 
 } // namespace lib
